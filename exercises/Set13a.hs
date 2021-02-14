@@ -1,15 +1,13 @@
 module Set13a where
 
-import Mooc.Todo
-
 import Control.Monad
 import Control.Monad.State
 import Data.Char
 import Data.List
 import qualified Data.Map as Map
-
+import Debug.Trace
 import Examples.Bank
-
+import Mooc.Todo
 
 ------------------------------------------------------------------------------
 -- Ex 1: Your task is to help implement the function readName that
@@ -27,37 +25,48 @@ import Examples.Bank
 -- works correctly.
 
 (?>) :: Maybe a -> (a -> Maybe b) -> Maybe b
-Nothing ?> _ = Nothing   -- In case of failure, propagate failure
-Just x  ?> f = f x       -- In case of sucess, run the next computation
+Nothing ?> _ = Nothing -- In case of failure, propagate failure
+Just x ?> f = f x -- In case of sucess, run the next computation
 
 -- DO NOT touch this definition!
-readNames :: String -> Maybe (String,String)
+readNames :: String -> Maybe (String, String)
 readNames s =
-  split s
-  ?>
-  checkNumber
-  ?>
-  checkCapitals
+  let x = split s
+      oof = x ?> checkNumber ?> checkCapitals
+   in split s
+        ?> checkNumber
+        ?> trace (show oof) checkCapitals
 
 -- split should split a string into two words. If the input doesn't
 -- contain a space, Nothing should be returned
 --
 -- (NB! There are obviously other corner cases like the inputs " " and
 -- "a b c", but you don't need to worry about those here)
-split :: String -> Maybe (String,String)
-split = todo
+split :: String -> Maybe (String, String)
+split x =
+  case sentence of
+    [a] -> Nothing
+    [word1, word2] -> Just (word1, word2)
+  where
+    sentence = words x
 
 -- checkNumber should take a pair of two strings and return them
 -- unchanged if they don't contain numbers. Otherwise Nothing is
 -- returned.
 checkNumber :: (String, String) -> Maybe (String, String)
-checkNumber = todo
+checkNumber (x, y) = if containsNums' x || containsNums' y then Nothing else Just (x, y)
+  where
+    containsNums' = any (`elem` "0123456789")
 
 -- checkCapitals should take a pair of two strings and return them
 -- unchanged if both start with a capital letter. Otherwise Nothing is
 -- returned.
 checkCapitals :: (String, String) -> Maybe (String, String)
-checkCapitals (for,sur) = todo
+checkCapitals (x, y) = if startsWithCaps x && startsWithCaps y then Just (x, y) else Nothing
+  where
+    startsWithCaps y = startingChar == toUpper startingChar
+      where
+        startingChar = head y
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given a list of players and their scores (as [(String,Int)]),
@@ -83,8 +92,12 @@ checkCapitals (for,sur) = todo
 --   winner [("a",1),("b",1)] "a" "b"
 --     ==> Just "a"
 
-winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = todo
+winner :: [(String, Int)] -> String -> String -> Maybe String
+winner scores player1 player2 =
+  lookup player1 scores
+    >>= \p1Score ->
+      lookup player2 scores
+        >>= \p2Score -> if p1Score >= p2Score then return player1 else return player2
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -126,8 +139,9 @@ instance Functor Logger where
 
 instance Monad Logger where
   return x = Logger [] x
-  Logger la a >>= f = Logger (la++lb) b
-    where Logger lb b = f a
+  Logger la a >>= f = Logger (la ++ lb) b
+    where
+      Logger lb b = f a
 
 -- This is an Applicative instance that works for any monad, you
 -- can just ignore it for now. We'll get back to Applicative later.
@@ -150,7 +164,7 @@ countAndLog = todo
 -- from Data.Map are available under the prefix Map.
 
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
+exampleBank = (Bank (Map.fromList [("harry", 10), ("cedric", 7), ("ginny", 1)]))
 
 balance :: String -> BankOp Int
 balance accountName = todo
@@ -214,8 +228,11 @@ paren :: Char -> State Int ()
 paren = todo
 
 parensMatch :: String -> Bool
-parensMatch s = count == 0
-  where (_,count) = runState (mapM_ paren s) 0
+parensMatch = todo
+
+-- parensMatch s = count == 0
+--   where
+--     (_, count) = runState (mapM_ paren s) 0
 
 ------------------------------------------------------------------------------
 -- Ex 9: using a state of type [(a,Int)] we can keep track of the
@@ -241,7 +258,7 @@ parensMatch s = count == 0
 --
 -- PS. The order of the list of pairs doesn't matter
 
-count :: Eq a => a -> State [(a,Int)] ()
+count :: Eq a => a -> State [(a, Int)] ()
 count x = return ()
 
 ------------------------------------------------------------------------------
@@ -263,5 +280,5 @@ count x = return ()
 --  runState (occurrences [4,7]) [(2,1),(3,1)]
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
-occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
+occurrences :: (Eq a) => [a] -> State [(a, Int)] Int
 occurrences xs = todo

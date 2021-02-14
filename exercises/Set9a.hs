@@ -25,7 +25,10 @@ import Mooc.Todo
 -- Otherwise return "Ok."
 
 workload :: Int -> Int -> String
-workload nExercises hoursPerExercise = todo
+workload n h 
+  | n * h > 100 = "Holy moly!"
+  | n * h < 10 = "Piece of cake!"
+  | otherwise = "Ok."
 
 ------------------------------------------------------------------------------
 -- Ex 2: Implement the function echo that builds a string like this:
@@ -38,7 +41,8 @@ workload nExercises hoursPerExercise = todo
 -- Hint: use recursion
 
 echo :: String -> String
-echo = todo
+echo "" = "" 
+echo xs = xs ++ ", " ++ echo (tail xs)
 
 ------------------------------------------------------------------------------
 -- Ex 3: A country issues some banknotes. The banknotes have a serial
@@ -51,7 +55,15 @@ echo = todo
 -- are valid.
 
 countValid :: [String] -> Int
-countValid = todo
+countValid = 
+  let validNotes = filter isValid 
+  in length . validNotes
+
+isValid :: String -> Bool 
+isValid ls
+  | ls !! 2 == ls !! 4 = True 
+  | ls !! 3 == ls !! 5 = True 
+  | otherwise = False 
 
 ------------------------------------------------------------------------------
 -- Ex 4: Find the first element that repeats two or more times _in a
@@ -63,7 +75,12 @@ countValid = todo
 --   repeated [1,2,1,2,3,3] ==> Just 3
 
 repeated :: Eq a => [a] -> Maybe a
-repeated = todo
+repeated [] = Nothing 
+repeated [x] = Nothing 
+repeated (x: y: xs) 
+  | x == y = Just x 
+  | otherwise = repeated (y: xs)
+
 
 ------------------------------------------------------------------------------
 -- Ex 5: A laboratory has been collecting measurements. Some of the
@@ -84,8 +101,16 @@ repeated = todo
 --   sumSuccess []
 --     ==> Left "no data"
 
+-- left/right
+f :: Either String Int -> [Int] -> [Int]
+f (Left _) [x, y] = [x + 1, y]
+f (Right z) [x, y] = [x, y + z]
+  
+
 sumSuccess :: [Either String Int] -> Either String Int
-sumSuccess = todo
+sumSuccess x = 
+  let counts = foldr f [0, 0] x
+  in if head counts == length x then Left "no data" else Right $ counts !! 1
 
 ------------------------------------------------------------------------------
 -- Ex 6: A combination lock can either be open or closed. The lock
@@ -107,30 +132,34 @@ sumSuccess = todo
 --   isOpen (open "0000" (lock (changeCode "0000" (open "1234" aLock)))) ==> True
 --   isOpen (open "1234" (lock (changeCode "0000" (open "1234" aLock)))) ==> False
 
-data Lock = LockUndefined
+data Lock = Open String | Closed String
   deriving Show
 
 -- aLock should be a locked lock with the code "1234"
 aLock :: Lock
-aLock = todo
+aLock = Closed "1234"
 
 -- isOpen returns True if the lock is open
 isOpen :: Lock -> Bool
-isOpen = todo
+isOpen (Open _) = True 
+isOpen _ = False
 
 -- open tries to open the lock with the given code. If the code is
 -- wrong, nothing happens.
 open :: String -> Lock -> Lock
-open = todo
+open x (Closed y) = if x == y then Open y else Closed y
+open _ y = y 
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
 lock :: Lock -> Lock
-lock = todo
+lock (Open y) = Closed y 
+lock x = x 
 
 -- changeCode changes the code of an open lock. If the lock is closed,
 -- nothing happens.
 changeCode :: String -> Lock -> Lock
-changeCode = todo
+changeCode code (Open _) = Open code 
+changeCode _ lock = lock
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here's a type Text that just wraps a String. Implement an Eq
@@ -143,10 +172,18 @@ changeCode = todo
 --   Text "abc"  == Text "abcd"     ==> False
 --   Text "a bc" == Text "ab  d\n"  ==> False
 
+wschars :: String
+wschars = " \t\r\n "
+
 data Text = Text String
   deriving Show
 
+isUseful x = x `notElem` wschars
 
+instance Eq Text where 
+  (Text x) == (Text y) = 
+    let f = filter isUseful 
+    in f x == f y
 ------------------------------------------------------------------------------
 -- Ex 8: We can represent functions or mappings as lists of pairs.
 -- For example the list [("bob",13),("mary",8)] means that "bob" maps
@@ -174,8 +211,18 @@ data Text = Text String
 --     compose [("a","alpha"),("b","beta"),("c","gamma")] [("alpha",1),("beta",2),("omicron",15)]
 --       ==> [("a",1),("b",2)]
 
+-- check if b exists in the second mappings
+-- if it does, then we map across otherwise ignore 
 compose :: (Eq a, Eq b) => [(a,b)] -> [(b,c)] -> [(a,c)]
-compose = todo
+compose xs ys = foldr (composed ys) [] xs 
+
+composed :: (Eq a, Eq b) => [(b,c)] -> (a, b) -> [(a, c)] -> [(a, c)]
+composed ys (a, b) ls = 
+  let e = lookup b ys
+  in 
+    case e of 
+      Nothing -> ls 
+      Just c -> (a, c) : ls
 
 ------------------------------------------------------------------------------
 -- Ex 9: Reorder a list using an [(Int,Int)] mapping.
@@ -212,5 +259,21 @@ compose = todo
 
 type Permutation = [(Int,Int)]
 
+-- first have a copy of the old list 
+-- then foldr across permutations 
+-- and set the appropriate element 
 permute :: Permutation -> [a] -> [a]
-permute = todo
+permute perms = formP perms . (replicate 2) -- take as old/new 
+  where 
+    formP [] [old, new] = new
+    formP (p: ps) [old, new] = 
+      let (from, to) = p 
+          newElem = old !! from 
+          idx = to
+          new' = update newElem idx new
+      in formP ps [old, new']
+
+-- updates elem at position idx to become new
+update :: a -> Int -> [a] -> [a]
+update new 0 (x: xs) = new : xs
+update new y (x: xs) = x : update new (y-1) xs  

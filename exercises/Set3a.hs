@@ -28,8 +28,10 @@ import Data.List
 --  maxBy head   [1,2,3] [4,5]  ==>  [4,5]
 
 maxBy :: (a -> Int) -> a -> a -> a
-maxBy measure a b = todo
-
+maxBy measure a b = 
+    let (x, y) = (measure a, measure b)
+        n = x > y
+    in if n then a else b
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function mapMaybe that takes a function and a
 -- Maybe value. If the value is Nothing, it returns Nothing. If it is
@@ -40,7 +42,8 @@ maxBy measure a b = todo
 --   mapMaybe length (Just "abc") ==> Just 3
 
 mapMaybe :: (a -> b) -> Maybe a -> Maybe b
-mapMaybe f x = todo
+mapMaybe f (Just x) = Just (f x)
+mapMaybe _ Nothing = Nothing 
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function mapMaybe2 that works like mapMaybe
@@ -54,7 +57,8 @@ mapMaybe f x = todo
 --   mapMaybe2 div (Just 6) Nothing   ==>  Nothing
 
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
-mapMaybe2 f x y = todo
+mapMaybe2 f (Just x) (Just y) = Just (f x y)
+mapMaybe2 _ _ _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -76,9 +80,13 @@ mapMaybe2 f x y = todo
 palindromeHalfs :: [String] -> [String]
 palindromeHalfs xs = map firstHalf (filter palindrome xs)
 
-firstHalf = todo
+firstHalf str = 
+    let l = length str 
+        required = if even l then l `div` 2 else l `div` 2 + 1 
+    in take required str
 
-palindrome = todo
+palindrome :: Eq a => [a] -> Bool
+palindrome x = x == reverse x
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -96,7 +104,11 @@ palindrome = todo
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
 capitalize :: String -> String
-capitalize = todo
+capitalize sentence = 
+    let wordList = words sentence
+        f (x: xs) = toUpper x : xs
+    in unwords $ map f wordList 
+
 
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
@@ -113,7 +125,10 @@ capitalize = todo
 --   * the function takeWhile
 
 powers :: Int -> Int -> [Int]
-powers k max = todo
+powers k max = 
+    let pred x = x <= max
+        powers = [n | x <- [0..], let n = k ^ x]
+    in takeWhile pred powers
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -136,7 +151,7 @@ powers k max = todo
 --     ==> Avvt
 
 while :: (a->Bool) -> (a->a) -> a -> a
-while check update value = todo
+while check update value = if not (check value) then value else while check update (update value)
 
 ------------------------------------------------------------------------------
 -- Ex 8: another version of a while loop. This time, the check
@@ -153,7 +168,11 @@ while check update value = todo
 --   whileRight (step 1000) 3  ==> 1536
 
 whileRight :: (a -> Either b a) -> a -> b
-whileRight f x = todo
+whileRight f x = 
+    let newValue = f x
+    in case newValue of 
+        Right y -> whileRight f y
+        Left z -> z
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
@@ -172,7 +191,7 @@ step k x = if x<k then Right (2*x) else Left x
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength = todo
+joinToLength l ls = [x ++ y | x <- ls, y <- ls, length (x ++ y) == l]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -186,6 +205,10 @@ joinToLength = todo
 --   [] +|+ [True]        ==> [True]
 --   [] +|+ []            ==> []
 
+(+|+) [] [] = []
+(+|+) [] (x: xs) = [x]
+(+|+) (x: xs) [] = [x]
+(+|+) (x: _) (y: _) = [x, y]
 
 ------------------------------------------------------------------------------
 -- Ex 11: remember the lectureParticipants example from Lecture 2? We
@@ -202,7 +225,11 @@ joinToLength = todo
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
 
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights [] = 0
+sumRights (x: xs) =
+    case x of 
+        Right y -> y + sumRights xs
+        _ -> sumRights xs
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -218,7 +245,8 @@ sumRights = todo
 --   multiCompose [(3*), (2^), (+1)] 0 ==> 6
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
 
-multiCompose fs = todo
+multiCompose [] i = i
+multiCompose (x: xs) i = x $ multiCompose xs i 
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -237,7 +265,11 @@ multiCompose fs = todo
 --   multiApp reverse [tail, take 2, reverse] "foo" ==> ["oof","fo","oo"]
 --   multiApp concat [take 3, reverse] "race" ==> "racecar"
 
-multiApp = todo
+multiApp :: ([a] -> b) -> [c -> a] -> c -> b
+multiApp f gs x = 
+    let multiApp' [] x = []
+        multiApp' (g: gs) x = g x : multiApp' gs x
+    in f $ multiApp' gs x   
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -272,4 +304,18 @@ multiApp = todo
 -- function, the surprise won't work.
 
 interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter commands = 
+    let helper command (x, y) 
+            | command == "up" = (x, y + 1)
+            | command == "down" = (x, y - 1)
+            | command == "left" = (x - 1, y)
+            | command == "right" = (x + 1, y)
+        helper' command (x, y) 
+            | command == "printX" = show x 
+            | otherwise = show y
+        interpreter' :: [String] -> (Int, Int) -> [String]
+        interpreter' [] (x, y) = []
+        interpreter' (c: cs) (x, y)
+            | c `elem` ["up", "down", "left", "right"] = interpreter' cs (helper c (x, y)) 
+            | otherwise = helper' c (x, y) : interpreter' cs (x, y)
+    in interpreter' commands (0, 0)
